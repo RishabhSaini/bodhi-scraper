@@ -10,9 +10,9 @@ import os
 
 rows_per_page = '30'
 query_file = "query.json"
-result_file = "result1Query.json"
+result_file = "parsedAndProcessed.json"
 client = BodhiClient()
-query = client.query(rows_per_page=rows_per_page, content_type='rpm', releases='__current__, __pending__', status='stable')
+#query = client.query(rows_per_page=rows_per_page, content_type='rpm', releases='__current__, __pending__', status='stable')
 pages = 20#query.pages
 pages_list = list(range(1, pages + 1))
 file_lock = threading.Lock()
@@ -81,7 +81,7 @@ def process_data():
                 name_arr.append(pkg_name)
             for name in name_arr:
                 pkg_name = parse_nevr(name)
-                pkg_name = pkg_name + "." + rows['release']['name']
+                pkg_name = pkg_name + "." + rows['release']['dist_tag']
                 if pkg_name not in freq.keys():
                     freq[pkg_name] = {Frequency(build_time, rows['alias'], name)}
                 else:
