@@ -5,29 +5,29 @@ import pandas as pd
 import re
 from concurrent.futures import ProcessPoolExecutor
 import time
-import threading
+from multiprocessing import Lock
 import os
 
-rows_per_page = '30'
-query_file = "query.json"
-result_file = "parsedAndProcessed.json"
-client = BodhiClient()
-#query = client.query(rows_per_page=rows_per_page, content_type='rpm', releases='__current__, __pending__', status='stable')
-pages = 20#query.pages
-pages_list = list(range(1, pages + 1))
-file_lock = threading.Lock()
-#open(query_file, "w").close()
 
-def get_a_page(page_no):
+def get_a_page(client, query_file, page_no, rows_per_page):
+    #print("Getting page:", page_no)
     qe = json.dumps(client.query(rows_per_page=rows_per_page, content_type='rpm', releases='__current__, __pending__', status='stable', page=page_no)['updates'])
-    with file_lock:    
+    with lock:    
         with open(query_file, 'a') as file:
             file.write(qe)
             file.write(',') 
 
-def setup_threads(pages_list):
-    with ProcessPoolExecutor() as executor:
-        return executor.map(get_a_page, pages_list)
+def init_processes(file_lock):
+    global lock
+    lock = file_lock
+
+def setup_threads(client, query_file, pages_list, rows_per_page):
+    print("Setting up threads")
+    file_lock = Lock()
+    with ProcessPoolExecutor(initializer=init_processes, initargs=(file_lock, )) as executor:
+        futures = [executor.submit(get_a_page, client, query_file, page_no, rows_per_page) for page_no in pages_list]
+        for future in futures:
+            result = future.result()
 
 def parse_nevr(s):
     EPOCH_RE = re.compile(r"^(\d+):")
@@ -67,7 +67,7 @@ class Frequency(dict):
     def toDict(self):
         return {"build_time": self.build_time, "alias": self.alias, "name": self.name}
 
-def process_data():
+def process_data(query_file, result_file):
     query = json.load(open(query_file))
     freq = {}
     for i in range(len(query)):
@@ -101,11 +101,20 @@ def process_data():
     return
 
 def init():
+    rows_per_page = '5'
+    query_file = "../parsed/view1Query.json"
+    result_file = "../results/result1Query.json"
+    client = BodhiClient()
+    #query = client.query(rows_per_page=rows_per_page, content_type='rpm', releases='__current__, __pending__', status='stable')
+    pages = 500#query.pages
+    pages_list = list(range(1, pages + 1))
+    open(query_file, "w").close()
+
     with open(query_file, 'a') as f:
         f.write('[')
 
     start = time.perf_counter()
-    setup_threads(pages_list)
+    setup_threads(client, query_file, pages_list, rows_per_page)
     finish = time.perf_counter()
     print("Time taken: ", finish - start)
 
@@ -116,4 +125,6 @@ def init():
     with open(query_file, 'a') as f:
         f.write(']')
 
-process_data()
+    process_data(query_file, result_file)
+
+init()
