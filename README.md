@@ -28,3 +28,29 @@ It is not only important to look at the frequency of version updates to current 
 
 
 Therefore, I have started a project, to web scrape all the stable RPM packages of current and upcoming releases and process them to give me metadata about RPM's frequency of update. This data in the future can be utilized by various rpm-ostree based OS (FOCS, RHCOS, Fedora Silverblue, Kinoite, IoT, RHEL 4 Edge) to intelligently package chunks into layers such that more frequently changing packages are kept separate from infrequently changing packages. The python script is hacky but I will keep making updates to make it better.
+
+### Example of what the process_data() in scripts/scraper.py produces:
+The JSON output contains a HashMap< String("Package Name" + "." + "Dist Tag"), Vec<{RPM Package with NEVRA and Metadata}>>
+```
+{
+"packetdrill.f38": [
+    {
+      "build_time": "2022-12-05 19:58:15",
+      "alias": "FEDORA-2022-49adbd8465",
+      "name": "packetdrill-2.0~20220927gitc556afb-5.fc38"
+    },
+    {
+      "build_time": "2022-12-05 17:28:24",
+      "alias": "FEDORA-2022-fe8251c78b",
+      "name": "packetdrill-2.0~20220927gitc556afb-4.fc38"
+    }
+  ],
+  "python-py-algorand-sdk.f38": [
+    {
+      "build_time": "2022-12-05 19:49:26",
+      "alias": "FEDORA-2022-f89892e4fa",
+      "name": "python-py-algorand-sdk-1.20.2-1.fc38"
+    }
+  ],
+ }
+```
