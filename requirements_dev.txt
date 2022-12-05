@@ -2,4 +2,3 @@ pip
 wheel
 bodhi-client
 panda
-hawkey
