@@ -7,6 +7,7 @@ from concurrent.futures import ProcessPoolExecutor
 import time
 from multiprocessing import Lock
 import os
+import xml.etree.ElementTree as ET
 
 
 def get_a_page(client, query_file, page_no, rows_per_page):
@@ -67,25 +68,49 @@ class Frequency(dict):
     def toDict(self):
         return {"build_time": self.build_time, "alias": self.alias, "name": self.name}
 
+def processUpdateInfo(query_file, result_file):
+    freq = {}
+    tree = ET.parse(query_file)
+    updates = tree.getroot()
+    for update in updates:
+        release = update[10][0].attrib['short']
+        for pkg_list in update[10][0]:
+            if pkg_list.tag == 'name':
+                continue
+            nvra_name = pkg_list.attrib['name']
+            nvra_arch = pkg_list.attrib['arch']
+            nvra = pkg_list[0].text
+            meta_name = nvra_name + "." + release + "." + nvra_arch
+            if meta_name not in freq.keys():
+                freq[meta_name] = [nvra]
+            else:
+                freq[meta_name].append(nvra)
+    
+    json_munch = json.dumps(freq)
+    sys.stdout=open(result_file, "w")
+    print(json_munch)
+    sys.stdout.close()
+    return
+
+
 def process_data(query_file, result_file):
     query = json.load(open(query_file))
     freq = {}
-    for i in range(len(query)):
-        for rows in query[i]:
+    for page_no in range(len(query)):
+        for rows in query[page_no]:
+            if 'F' not in rows['release']['name']:
+                continue
             pkg_name = rows['title']
             build_time = rows['date_stable']
-            name_arr = []
-            if ' ' in pkg_name:
-                name_arr = pkg_name.split(" ")
-            else:
-                name_arr.append(pkg_name)
-            for name in name_arr:
-                pkg_name = parse_nevr(name)
-                pkg_name = pkg_name + "." + rows['release']['dist_tag']
-                if pkg_name not in freq.keys():
-                    freq[pkg_name] = {Frequency(build_time, rows['alias'], name)}
+            release = "fc" + rows['release']['version']
+            for build in rows['builds']:
+                nvr = build['nvr']
+                pkg_name = parse_nevr(nvr)
+                name = pkg_name + "." + release
+                if name not in freq.keys():
+                    freq[name] = {Frequency(build_time, rows['alias'], nvr)}
                 else:
-                    freq[pkg_name].add(Frequency(build_time, rows['alias'], name))
+                    freq[name].add(Frequency(build_time, rows['alias'], nvr))
 
     
     for key in freq:
@@ -127,4 +152,6 @@ def init():
 
     process_data(query_file, result_file)
 
-init()
+query_file = "../updateInfos/0a3a9d97fad32308710419cf3031bf940b76badc38469ed1454fac6b460d3b98-updateinfo.xml"
+result_file = "../results/update_xml.json"
+processUpdateInfo(query_file, result_file)
