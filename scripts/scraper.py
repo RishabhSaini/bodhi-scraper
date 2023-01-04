@@ -8,10 +8,9 @@ import time
 from multiprocessing import Lock
 import os
 import xml.etree.ElementTree as ET
-
+import requests
 
 def get_a_page(client, query_file, page_no, rows_per_page):
-    #print("Getting page:", page_no)
     qe = json.dumps(client.query(rows_per_page=rows_per_page, content_type='rpm', releases='__current__, __pending__', status='stable', page=page_no)['updates'])
     with lock:    
         with open(query_file, 'a') as file:
@@ -67,6 +66,10 @@ class Frequency(dict):
 
     def toDict(self):
         return {"build_time": self.build_time, "alias": self.alias, "name": self.name}
+
+def getReleases():
+    response = requests.get("http://fedora.mirror.garr.it/fedora/linux/updates/") 
+    print(response.text)   
 
 def processUpdateInfo(query_file, result_file):
     freq = {}
@@ -152,6 +155,6 @@ def init():
 
     process_data(query_file, result_file)
 
-query_file = "../updateInfos/0a3a9d97fad32308710419cf3031bf940b76badc38469ed1454fac6b460d3b98-updateinfo.xml"
-result_file = "../results/update_xml.json"
+query_file = "../updateInfos/2e50aebafb4895b07e72fe3d116f013cc7dc20ce40826d62ac0a438d678d3611-updateinfo.xml"
+result_file = "../results/update_xml35.json"
 processUpdateInfo(query_file, result_file)
