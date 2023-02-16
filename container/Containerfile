@@ -1,0 +1,7 @@
+FROM python:latest
+LABEL Maintainer="rsaini@redhat.com"
+WORKDIR /usr/bodhi_scraper
+COPY ./Bodhiscraper.py .
+COPY ./requirements_dev.txt .
+RUN pip install -r ./requirements_dev.txt 
+CMD ["python3", "Bodhiscraper.py"]
