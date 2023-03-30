@@ -1,0 +1,4 @@
+[frequency]
+name=Frequency Metdata 
+baseurl=https://github.com/RishabhSaini/frequencyRepo 
+gpgcheck=0
